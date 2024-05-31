@@ -1,13 +1,12 @@
-main {
-    min-height: 100vh;
-    background-color: rgb(255, 255, 255);
-    display: flex;
-    align-items: center;
-    flex-direction: column;
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
 }
 
-header,
-footer {
-    background-color: #2a304d;
-    height: 50px;
+h1 {
+    color: #333;
+}
+
+#map {
+    margin-top: 20px;
 }

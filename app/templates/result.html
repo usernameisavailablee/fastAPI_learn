@@ -1,12 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>FastAPI Form Result</title>
-    <link href="{{ url_for('static', path='/css/styles.css') }}" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Result</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 </head>
 <body>
-    <h2>Form Submission Result</h2>
-    <p>Submitted item: {{ item }}</p>
-    <a href="/">Back to form</a>
+    <h1>Selected Coordinates and Route</h1>
+    <ul>
+        {% for coord in coordinates %}
+        <li>Latitude: {{ coord.latitude }}, Longitude: {{ coord.longitude }}</li>
+        {% endfor %}
+    </ul>
+    <a href="/">Go back</a>
+
+    <div id="map" style="height: 500px;"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([{{ coordinates[0].latitude }}, {{ coordinates[0].longitude }}], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        var routeCoordinates = {{ route | tojson }};
+        var selectedCoordinates = {{ coordinates | tojson }};
+
+        // Add markers for all selected points
+        selectedCoordinates.forEach(function(coord, index) {
+            L.marker([coord.latitude, coord.longitude]).addTo(map).bindPopup("Point " + (index + 1)).openPopup();
+        });
+
+        // Draw the route polyline
+        var polyline = L.polyline(routeCoordinates, {color: 'blue'}).addTo(map);
+        map.fitBounds(polyline.getBounds());
+    </script>
 </body>
 </html>

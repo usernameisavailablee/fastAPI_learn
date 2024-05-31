@@ -1,34 +1,23 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>FastAPI HTML Form</title>
-    <link href="{{ url_for('static', path='/css/styles.css') }}" rel="stylesheet">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Application</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 </head>
-
 <body>
+    <h1>Select Points on the Map</h1>
 
-<header>
-  <h2>header</h2>
-</header>
+    <div id="map" style="height: 500px;"></div>
 
+    <form id="coordinatesForm" action="/submit/" method="post">
+        <input type="hidden" id="coordinates" name="coordinates">
+        <button type="submit">Submit</button>
+    </form>
 
-
-<main>
-  <h2>FastAPI HTML Form</h2>
-  <form action="/submit/" method="post">
-      <label for="item">Item:</label>
-      <input type="text" id="item" name="item" required>
-      <button type="submit">Submit</button>
-  </form>
-</main>
-
-
-
-<footer>
-  <h2>footer</h2>
-</footer>
-
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="/static/js/scripts.js"></script>
 </body>
-
 </html>
