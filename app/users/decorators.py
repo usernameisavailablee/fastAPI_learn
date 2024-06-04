@@ -55,6 +55,7 @@ from pydantic import BaseModel
 from typing import List
 import osmnx as ox
 import networkx as nx
+import random
 import numpy as np
 
 app = FastAPI()
@@ -69,96 +70,64 @@ class Coordinate(BaseModel):
 def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-class AntColonyOptimizer:
-    def __init__(self, num_cities, num_ants, num_iterations, alpha=1, beta=5, rho=0.1, q=1):
-        self.num_cities = num_cities
-        self.num_ants = num_ants
-        self.num_iterations = num_iterations
-        self.alpha = alpha
-        self.beta = beta
-        self.rho = rho
-        self.q = q
+def ant_colony_optimization(graph: nx.Graph, nodes: List[int], n_ants: int = 10, n_best: int = 5, n_iterations: int = 100, decay: float = 0.5, alpha: float = 1, beta: float = 2) -> List[int]:
+    def distance(node1: int, node2: int) -> float:
+        try:
+            return nx.shortest_path_length(graph, source=node1, target=node2, weight='length')
+        except nx.NetworkXNoPath:
+            return float('inf')
 
-        self.distances = None
-        self.pheromone = None
-        self.cities = np.zeros((num_cities, 2))
-        self.best_solution = None
-        self.best_distance = np.inf
+    pheromone = np.ones((len(nodes), len(nodes)))
+    all_time_shortest_path = ("placeholder", np.inf)
 
-    def generate_cities(self, list_city):
-        self.cities = list_city
+    for _ in range(n_iterations):
+        all_paths = []
+        for _ in range(n_ants):
+            path = []
+            visited = set()
+            start = random.choice(nodes)
+            visited.add(start)
+            path.append(start)
 
-    def calculate_distances(self):
-        self.distances = np.zeros((self.num_cities, self.num_cities))
-        for i in range(self.num_cities):
-            for j in range(i + 1, self.num_cities):
-                distance = np.linalg.norm(self.cities[i] - self.cities[j])
-                self.distances[i][j] = distance
-                self.distances[j][i] = distance
+            prev = start
+            for _ in range(len(nodes) - 1):
+                move_probs = []
+                for node in nodes:
+                    if node not in visited:
+                        dist = distance(prev, node)
+                        if dist == float('inf'):
+                            continue
+                        move_prob = (pheromone[nodes.index(prev)][nodes.index(node)] ** alpha) * ((1 / dist) ** beta)
+                        move_probs.append((move_prob, node))
 
-    def initialize_pheromone(self):
-        self.pheromone = np.ones((self.num_cities, self.num_cities))
+                if not move_probs:
+                    break
 
-    def ant_tour(self, ant):
-        visited = np.zeros(self.num_cities, dtype=bool)
-        tour = np.zeros(self.num_cities, dtype=int)
-        current_city = np.random.randint(0, self.num_cities)
-        visited[current_city] = True
-        tour[0] = current_city
+                move_probs = sorted(move_probs, key=lambda x: x[0], reverse=True)
+                total = sum([prob for prob, node in move_probs])
+                probs = [prob / total for prob, node in move_probs]
+                next_node = random.choices([node for prob, node in move_probs], weights=probs, k=1)[0]
+                path.append(next_node)
+                visited.add(next_node)
+                prev = next_node
 
-        for _ in range(1, self.num_cities):
-            probabilities = np.zeros(self.num_cities)
+            if len(path) == len(nodes):  # Проверка, что все узлы посещены
+                path_distance = sum([distance(path[i], path[i + 1]) for i in range(len(path) - 1)])
+                all_paths.append((path, path_distance))
 
-            for j in range(self.num_cities):
-                if not visited[j]:
-                    probabilities[j] = (self.pheromone[current_city][j] ** self.alpha) * \
-                                       (1.0 / self.distances[current_city][j] ** self.beta)
+        all_paths = sorted(all_paths, key=lambda x: x[1])
+        if all_paths:
+            shortest_path = all_paths[0]
+            if shortest_path[1] < all_time_shortest_path[1]:
+                all_time_shortest_path = shortest_path
 
-            probabilities /= np.sum(probabilities)
-            next_city = np.random.choice(range(self.num_cities), p=probabilities)
-            tour[_] = next_city
-            visited[next_city] = True
-            current_city = next_city
+        for path, dist in all_paths[:n_best]:
+            for move in range(len(path) - 1):
+                pheromone[nodes.index(path[move])][nodes.index(path[move + 1])] += 1.0 / dist
 
-        return tour
+        pheromone *= decay
 
-    def ant_colony_optimization(self):
-        self.best_solution = np.zeros(self.num_cities, dtype=int)
-
-        for _ in range(self.num_iterations):
-            solutions = np.zeros((self.num_ants, self.num_cities), dtype=int)
-            distances = np.zeros(self.num_ants)
-
-            for ant in range(self.num_ants):
-                solutions[ant] = self.ant_tour(ant)
-                distances[ant] = self.calculate_tour_distance(solutions[ant])
-
-                if distances[ant] < self.best_distance:
-                    self.best_distance = distances[ant]
-                    self.best_solution = np.copy(solutions[ant])
-
-            self.update_pheromone(solutions, distances)
-
-    def calculate_tour_distance(self, tour):
-        distance = 0
-        for i in range(self.num_cities - 1):
-            distance += self.distances[tour[i]][tour[i + 1]]
-        distance += self.distances[tour[-1]][tour[0]]  # Add distance from last city to first city
-        return distance
-
-    def update_pheromone(self, solutions, distances):
-        pheromone_delta = np.zeros((self.num_cities, self.num_cities))
-
-        for ant in range(self.num_ants):
-            tour = solutions[ant]
-            tour_distance = distances[ant]
-
-            for i in range(self.num_cities - 1):
-                pheromone_delta[tour[i]][tour[i + 1]] += self.q / tour_distance
-
-            pheromone_delta[tour[-1]][tour[0]] += self.q / tour_distance
-
-        self.pheromone = (1 - self.rho) * self.pheromone + pheromone_delta
+    return all_time_shortest_path[0] if all_time_shortest_path[0] != "placeholder" else nodes
 
 @app.post("/submit/")
 def submit_form(request: Request, coordinates: str = Form(...)):
@@ -173,19 +142,16 @@ def submit_form(request: Request, coordinates: str = Form(...)):
     # Находим ближайшие узлы для каждой точки
     nodes = [ox.distance.nearest_nodes(G, coord.longitude, coord.latitude) for coord in coordinates_list]
 
-    # Получаем координаты узлов
-    list_city = np.array([(G.nodes[node]['x'], G.nodes[node]['y']) for node in nodes])
+    # Оптимизируем маршрут с помощью муравьиного алгоритма
+    optimal_node_path = ant_colony_optimization(G, nodes)
 
-    # Инициализируем муравьиный алгоритм
-    aco = AntColonyOptimizer(num_cities=len(nodes), num_ants=10, num_iterations=100)
-    aco.generate_cities(list_city)
-    aco.calculate_distances()
-    aco.initialize_pheromone()
-    aco.ant_colony_optimization()
+    # Преобразуем оптимизированный маршрут в список координат с использованием кратчайших путей
+    route = []
+    for i in range(len(optimal_node_path) - 1):
+        route_segment = nx.shortest_path(G, optimal_node_path[i], optimal_node_path[i + 1], weight='length')
+        route.extend(route_segment if i == 0 else route_segment[1:])
 
-    # Преобразуем оптимальный маршрут в координаты
-    optimal_route = aco.best_solution
-    route_coords = [(G.nodes[nodes[node]]['y'], G.nodes[nodes[node]]['x']) for node in optimal_route]
+    route_coords = [(G.nodes[node]['y'], G.nodes[node]['x']) for node in route]
 
     # Преобразуем координаты в список словарей
     coordinates_dicts = [coord.dict() for coord in coordinates_list]
