@@ -35,7 +35,10 @@
         });
 
         // Draw the route polyline
-        var polyline = L.polyline(routeCoordinates, {color: 'blue'}).addTo(map);
+        var polyline = L.polyline(routeCoordinates.map(function(coord) {
+            return [coord.latitude, coord.longitude];
+        }), {color: 'blue'}).addTo(map);
+
         map.fitBounds(polyline.getBounds());
     </script>
 </body>

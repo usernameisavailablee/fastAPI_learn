@@ -65,10 +65,6 @@ class Coordinate(BaseModel):
     latitude: float
     longitude: float
 
-@app.get("/")
-def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
 class AntColonyOptimizer:
     def __init__(self, num_cities, num_ants, num_iterations, alpha=1, beta=5, rho=0.1, q=1):
         self.num_cities = num_cities
@@ -160,6 +156,10 @@ class AntColonyOptimizer:
 
         self.pheromone = (1 - self.rho) * self.pheromone + pheromone_delta
 
+@app.get("/")
+def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
 @app.post("/submit/")
 def submit_form(request: Request, coordinates: str = Form(...)):
     coordinates_list = [Coordinate(**coord) for coord in eval(coordinates)]
@@ -167,27 +167,27 @@ def submit_form(request: Request, coordinates: str = Form(...)):
     if len(coordinates_list) < 2:
         raise HTTPException(status_code=400, detail="At least two points are required to build a route.")
 
-    # Загружаем граф из первой точки
-    G = ox.graph_from_point((coordinates_list[0].latitude, coordinates_list[0].longitude), dist=10000, network_type='drive')
+    # Prepare cities array for ACO
+    cities = np.array([(coord.latitude, coord.longitude) for coord in coordinates_list])
+    num_cities = len(cities)
 
-    # Находим ближайшие узлы для каждой точки
-    nodes = [ox.distance.nearest_nodes(G, coord.longitude, coord.latitude) for coord in coordinates_list]
-
-    # Получаем координаты узлов
-    list_city = np.array([(G.nodes[node]['x'], G.nodes[node]['y']) for node in nodes])
-
-    # Инициализируем муравьиный алгоритм
-    aco = AntColonyOptimizer(num_cities=len(nodes), num_ants=10, num_iterations=100)
-    aco.generate_cities(list_city)
+    # Initialize ACO
+    aco = AntColonyOptimizer(num_cities=num_cities, num_ants=10, num_iterations=100, alpha=1, beta=5, rho=0.1, q=1)
+    aco.generate_cities(cities)
     aco.calculate_distances()
     aco.initialize_pheromone()
+
+    # Run ACO
     aco.ant_colony_optimization()
+    best_route = aco.best_solution
 
-    # Преобразуем оптимальный маршрут в координаты
-    optimal_route = aco.best_solution
-    route_coords = [(G.nodes[nodes[node]]['y'], G.nodes[nodes[node]]['x']) for node in optimal_route]
+    # Get the best route in terms of coordinates
+    best_route_coords = [cities[i] for i in best_route]
 
-    # Преобразуем координаты в список словарей
+    # Convert the best route coordinates to a list of dictionaries
+    route_coords = [{"latitude": coord[0], "longitude": coord[1]} for coord in best_route_coords]
+
+    # Convert original coordinates to a list of dictionaries
     coordinates_dicts = [coord.dict() for coord in coordinates_list]
 
     return templates.TemplateResponse("result.html", {"request": request, "coordinates": coordinates_dicts, "route": route_coords})
