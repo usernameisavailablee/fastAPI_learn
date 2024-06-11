@@ -4,6 +4,9 @@
     <title>Route Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+
 </head>
 <body>
     <h1>Route Map</h1>
@@ -25,7 +28,14 @@
         ];
 
         // Add the route to the map
-        var route = L.polyline(routeCoordinates, {color: 'blue'}).addTo(map);
+        // var route = L.polyline(routeCoordinates, {color: 'blue'}).addTo(map);
+        L.Routing.control({
+            waypoints: routeCoordinates.map(coord => L.latLng(coord[0], coord[1])),
+            routeWhileDragging: false, // Отображать маршрут при перетаскивании точек
+            lineOptions: {
+                styles: [{color: 'blue', opacity: 0.8, weight: 5}]
+            }
+        }).addTo(map);
 
         // Fit the map to the bounds of the route
         map.fitBounds(route.getBounds());
@@ -45,16 +55,16 @@
         }
 
         // Add markers for the optimized route points with sequence
-        for (var i = 0; i < routeCoordinates.length; i++) {
-            L.marker(routeCoordinates[i], {
-                icon: L.divIcon({
-                    className: 'custom-div-icon',
-                    html: "<div style='background-color:#4838CC;' class='marker-pin'></div><span class='icon'>" + (i + 1) + "</span>",
-                    iconSize: [30, 42],
-                    iconAnchor: [15, 42]
-                })
-            }).addTo(map);
-        }
+        // for (var i = 0; i < routeCoordinates.length; i++) {
+        //     L.marker(routeCoordinates[i], {
+        //         icon: L.divIcon({
+        //             className: 'custom-div-icon',
+        //             html: "<div style='background-color:#4838CC;' class='marker-pin'></div><span class='icon'>" + (i + 1) + "</span>",
+        //             iconSize: [30, 42],
+        //             iconAnchor: [15, 42]
+        //         })
+        //     }).addTo(map);
+        // }
     </script>
     <style>
         .custom-div-icon .marker-pin {
