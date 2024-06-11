@@ -105,6 +105,10 @@ def submit_form(request: Request, coordinates: str = Form(...)):
     # Находим ближайшие узлы для каждой точки
     nodes = [ox.distance.nearest_nodes(G, coord.longitude, coord.latitude) for coord in coordinates_list]
 
+    # Убедитесь, что первая точка является первым элементом списка узлов
+    start_node = ox.distance.nearest_nodes(G, coordinates_list[0].longitude, coordinates_list[0].latitude)
+    nodes.insert(0, start_node)
+
     # Создаем экземпляр класса AntColonyOptimizer
     aco = AntColonyOptimizer(G, nodes=nodes, num_ants=10, num_iterations=100)
     aco.ant_colony_optimization()
@@ -125,9 +129,5 @@ def submit_form(request: Request, coordinates: str = Form(...)):
 
     # Преобразуем координаты в список словарей
     coordinates_dicts = [coord.dict() for coord in coordinates_list]
-
-    # Отладочная информация
-    print(f"Coordinates: {coordinates_dicts}")
-    print(f"Route: {route_coords}")
 
     return templates.TemplateResponse("result.html", {"request": request, "coordinates": coordinates_dicts, "route": route_coords})

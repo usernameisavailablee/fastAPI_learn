@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', (event) => {
-    var map = L.map('map').setView([51.505, -0.09], 13);
+    var map = L.map('map').setView([45.0355, 38.9753], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -9,7 +9,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     map.on('click', function(e) {
         var latLng = e.latlng;
-        coordinates.push(latLng);
+        var coordinate = {
+            latitude: latLng.lat,
+            longitude: latLng.lng
+        };
+        coordinates.push(coordinate);
         L.marker(latLng).addTo(map);
         document.getElementById('coordinates').value = JSON.stringify(coordinates);
     });
