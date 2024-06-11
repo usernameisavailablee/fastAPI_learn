@@ -53,6 +53,8 @@ class AntColonyOptimizer:
                     if dist != float('inf'):
                         move_prob = (self.pheromone[(current_node, node)] ** self.alpha) * ((1.0 / dist) ** self.beta)
                         move_probs.append((move_prob, node))
+            if not move_probs:
+                break
             total = sum(prob for prob, _ in move_probs)
             move_probs = [(prob / total, node) for prob, node in move_probs]
             next_node = random.choices([node for _, node in move_probs], weights=[prob for prob, _ in move_probs], k=1)[0]
@@ -110,6 +112,9 @@ def submit_form(request: Request, coordinates: str = Form(...)):
     # Получаем оптимизированный маршрут
     optimal_node_path = aco.best_solution
 
+    if optimal_node_path is None:
+        raise HTTPException(status_code=500, detail="Failed to find an optimal path")
+
     # Преобразуем оптимизированный маршрут в список координат с использованием кратчайших путей
     route = []
     for i in range(len(optimal_node_path) - 1):
@@ -120,5 +125,9 @@ def submit_form(request: Request, coordinates: str = Form(...)):
 
     # Преобразуем координаты в список словарей
     coordinates_dicts = [coord.dict() for coord in coordinates_list]
+
+    # Отладочная информация
+    print(f"Coordinates: {coordinates_dicts}")
+    print(f"Route: {route_coords}")
 
     return templates.TemplateResponse("result.html", {"request": request, "coordinates": coordinates_dicts, "route": route_coords})

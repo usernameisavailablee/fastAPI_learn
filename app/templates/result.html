@@ -1,45 +1,77 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Result</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+    <title>Route Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 </head>
 <body>
-    <h1>Selected Coordinates and Route</h1>
-    <ul>
-        {% for coord in coordinates %}
-        <li>Latitude: {{ coord.latitude }}, Longitude: {{ coord.longitude }}</li>
-        {% endfor %}
-    </ul>
-    <a href="/">Go back</a>
-
-    <div id="map" style="height: 500px;"></div>
-
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <h1>Route Map</h1>
+    <div id="map" style="height: 600px;"></div>
     <script>
-        var map = L.map('map').setView([{{ coordinates[0].latitude }}, {{ coordinates[0].longitude }}], 13);
+        // Initialize the map
+        var map = L.map('map').setView([{{ coordinates[0]['latitude'] }}, {{ coordinates[0]['longitude'] }}], 13);
 
+        // Add the OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        var routeCoordinates = {{ route | tojson }};
-        var selectedCoordinates = {{ coordinates | tojson }};
+        // Coordinates of the route
+        var routeCoordinates = [
+            {% for coord in route %}
+                [{{ coord[0] }}, {{ coord[1] }}],
+            {% endfor %}
+        ];
 
-        // Add markers for all selected points
-        selectedCoordinates.forEach(function(coord, index) {
-            L.marker([coord.latitude, coord.longitude]).addTo(map).bindPopup("Point " + (index + 1)).openPopup();
-        });
+        // Add the route to the map
+        var route = L.polyline(routeCoordinates, {color: 'blue'}).addTo(map);
 
-        // Draw the route polyline
-        var polyline = L.polyline(routeCoordinates.map(function(coord) {
-            return [coord.latitude, coord.longitude];
-        }), {color: 'blue'}).addTo(map);
+        // Fit the map to the bounds of the route
+        map.fitBounds(route.getBounds());
 
-        map.fitBounds(polyline.getBounds());
+        // Add markers for the original points with labels
+        var originalPoints = [
+            {% for coord in coordinates %}
+                [{{ coord.latitude }}, {{ coord.longitude }}],
+            {% endfor %}
+        ];
+
+        for (var i = 0; i < originalPoints.length; i++) {
+            L.marker(originalPoints[i])
+                .bindPopup("Point " + (i + 1))
+                .addTo(map)
+                .openPopup();
+        }
+
+        // Add markers for the optimized route points with sequence
+        for (var i = 0; i < routeCoordinates.length; i++) {
+            L.marker(routeCoordinates[i], {
+                icon: L.divIcon({
+                    className: 'custom-div-icon',
+                    html: "<div style='background-color:#4838CC;' class='marker-pin'></div><span class='icon'>" + (i + 1) + "</span>",
+                    iconSize: [30, 42],
+                    iconAnchor: [15, 42]
+                })
+            }).addTo(map);
+        }
     </script>
+    <style>
+        .custom-div-icon .marker-pin {
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background-color: #4838CC;
+            text-align: center;
+            color: white;
+            padding: 5px;
+            font-size: 14px;
+        }
+        .custom-div-icon .icon {
+            font-weight: bold;
+            font-size: 14px;
+            line-height: 30px;
+        }
+    </style>
 </body>
 </html>
