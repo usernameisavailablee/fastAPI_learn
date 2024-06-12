@@ -43,22 +43,23 @@ class AntColonyOptimizer:
             return float('inf')
 
     def ant_tour(self):
-        tour = [random.choice(self.nodes)]
+        tour = [self.nodes[0]]  # Начинаем с первой точки
+        remaining_nodes = self.nodes[1:]
         while len(tour) < self.num_nodes:
             current_node = tour[-1]
             move_probs = []
-            for node in self.nodes:
-                if node not in tour:
-                    dist = self.distance(current_node, node)
-                    if dist != float('inf'):
-                        move_prob = (self.pheromone[(current_node, node)] ** self.alpha) * ((1.0 / dist) ** self.beta)
-                        move_probs.append((move_prob, node))
+            for node in remaining_nodes:
+                dist = self.distance(current_node, node)
+                if dist != float('inf'):
+                    move_prob = (self.pheromone[(current_node, node)] ** self.alpha) * ((1.0 / dist) ** self.beta)
+                    move_probs.append((move_prob, node))
             if not move_probs:
                 break
             total = sum(prob for prob, _ in move_probs)
             move_probs = [(prob / total, node) for prob, node in move_probs]
             next_node = random.choices([node for _, node in move_probs], weights=[prob for prob, _ in move_probs], k=1)[0]
             tour.append(next_node)
+            remaining_nodes.remove(next_node)
         return tour
 
     def ant_colony_optimization(self):
@@ -105,15 +106,10 @@ def submit_form(request: Request, coordinates: str = Form(...)):
     # Находим ближайшие узлы для каждой точки
     nodes = [ox.distance.nearest_nodes(G, coord.longitude, coord.latitude) for coord in coordinates_list]
 
-    # Убедитесь, что первая точка является первым элементом списка узлов
-    start_node = ox.distance.nearest_nodes(G, coordinates_list[0].longitude, coordinates_list[0].latitude)
-    nodes.insert(0, start_node)
-
     # Создаем экземпляр класса AntColonyOptimizer
     aco = AntColonyOptimizer(G, nodes=nodes, num_ants=10, num_iterations=100)
     aco.ant_colony_optimization()
 
-    # Получаем оптимизированный маршрут
     optimal_node_path = aco.best_solution
 
     if optimal_node_path is None:
