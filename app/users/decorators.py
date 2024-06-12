@@ -21,7 +21,7 @@ def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 class AntColonyOptimizer:
-    def __init__(self, graph: nx.Graph, nodes: List[int], num_ants, num_iterations, alpha=1, beta=5, rho=0.1, q=1):
+    def __init__(self, graph: nx.Graph, nodes: List[int], num_ants, num_iterations, alpha=1, beta=10, rho=0.1, q=1):
         self.graph = graph
         self.nodes = nodes
         self.num_nodes = len(nodes)
@@ -94,19 +94,16 @@ class AntColonyOptimizer:
             self.pheromone[(tour[-1], tour[0])] += self.q / distance
 
 @app.post("/submit/")
-def submit_form(request: Request, coordinates: str = Form(...)):
+async def submit_form(coordinates: str = Form(...)):
     coordinates_list = [Coordinate(**coord) for coord in eval(coordinates)]
 
     if len(coordinates_list) < 2:
         raise HTTPException(status_code=400, detail="At least two points are required to build a route.")
 
-    # Загружаем граф из первой точки
     G = ox.graph_from_point((coordinates_list[0].latitude, coordinates_list[0].longitude), dist=10000, network_type='drive')
 
-    # Находим ближайшие узлы для каждой точки
     nodes = [ox.distance.nearest_nodes(G, coord.longitude, coord.latitude) for coord in coordinates_list]
 
-    # Создаем экземпляр класса AntColonyOptimizer
     aco = AntColonyOptimizer(G, nodes=nodes, num_ants=10, num_iterations=100)
     aco.ant_colony_optimization()
 
@@ -115,7 +112,6 @@ def submit_form(request: Request, coordinates: str = Form(...)):
     if optimal_node_path is None:
         raise HTTPException(status_code=500, detail="Failed to find an optimal path")
 
-    # Преобразуем оптимизированный маршрут в список координат с использованием кратчайших путей
     route = []
     for i in range(len(optimal_node_path) - 1):
         route_segment = nx.shortest_path(G, optimal_node_path[i], optimal_node_path[i + 1], weight='length')
@@ -123,7 +119,4 @@ def submit_form(request: Request, coordinates: str = Form(...)):
 
     route_coords = [(G.nodes[node]['y'], G.nodes[node]['x']) for node in route]
 
-    # Преобразуем координаты в список словарей
-    coordinates_dicts = [coord.dict() for coord in coordinates_list]
-
-    return templates.TemplateResponse("result.html", {"request": request, "coordinates": coordinates_dicts, "route": route_coords})
+    return {"route": route_coords}
