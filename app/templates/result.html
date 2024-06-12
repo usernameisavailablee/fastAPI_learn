@@ -1,43 +1,63 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Route Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
-
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+        header {
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+            font-size: 24px;
+        }
+        #map {
+            width: 100%;
+            max-width: 1000px;
+            height: 600px;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Route Map</h1>
-    <div id="map" style="height: 600px;"></div>
+    <header>
+        Route Map
+    </header>
+    <div id="map"></div>
     <script>
-        // Initialize the map
         var map = L.map('map').setView([{{ coordinates[0]['latitude'] }}, {{ coordinates[0]['longitude'] }}], 13);
 
-        // Add the OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Coordinates of the route
         var routeCoordinates = [
             {% for coord in route %}
                 [{{ coord[0] }}, {{ coord[1] }}],
             {% endfor %}
         ];
 
-        // Add the route to the map
         L.Routing.control({
             waypoints: routeCoordinates.map(coord => L.latLng(coord[0], coord[1])),
-            routeWhileDragging: false, // Не отображать маршрут при перетаскивании точек
+            routeWhileDragging: false,
             lineOptions: {
                 styles: [{color: 'blue', opacity: 0.8, weight: 5}]
             },
-            createMarker: function() { return null; } // Не создавать маркеры для точек маршрута
+            createMarker: function() { return null; }
         }).addTo(map);
 
-        // Add markers for the original points with labels
         var originalPoints = [
             {% for coord in coordinates %}
                 [{{ coord.latitude }}, {{ coord.longitude }}],
@@ -46,7 +66,7 @@
 
         for (var i = 0; i < originalPoints.length; i++) {
             L.marker(originalPoints[i])
-                .bindPopup("Точка " + (i + 1))
+                .bindPopup("Point " + (i + 1))
                 .addTo(map);
         }
     </script>
