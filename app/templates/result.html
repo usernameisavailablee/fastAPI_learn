@@ -28,17 +28,14 @@
         ];
 
         // Add the route to the map
-        // var route = L.polyline(routeCoordinates, {color: 'blue'}).addTo(map);
         L.Routing.control({
             waypoints: routeCoordinates.map(coord => L.latLng(coord[0], coord[1])),
-            routeWhileDragging: false, // Отображать маршрут при перетаскивании точек
+            routeWhileDragging: false, // Не отображать маршрут при перетаскивании точек
             lineOptions: {
                 styles: [{color: 'blue', opacity: 0.8, weight: 5}]
-            }
+            },
+            createMarker: function() { return null; } // Не создавать маркеры для точек маршрута
         }).addTo(map);
-
-        // Fit the map to the bounds of the route
-        map.fitBounds(route.getBounds());
 
         // Add markers for the original points with labels
         var originalPoints = [
@@ -49,39 +46,9 @@
 
         for (var i = 0; i < originalPoints.length; i++) {
             L.marker(originalPoints[i])
-                .bindPopup("Point " + (i + 1))
-                .addTo(map)
-                .openPopup();
+                .bindPopup("Точка " + (i + 1))
+                .addTo(map);
         }
-
-        // Add markers for the optimized route points with sequence
-        // for (var i = 0; i < routeCoordinates.length; i++) {
-        //     L.marker(routeCoordinates[i], {
-        //         icon: L.divIcon({
-        //             className: 'custom-div-icon',
-        //             html: "<div style='background-color:#4838CC;' class='marker-pin'></div><span class='icon'>" + (i + 1) + "</span>",
-        //             iconSize: [30, 42],
-        //             iconAnchor: [15, 42]
-        //         })
-        //     }).addTo(map);
-        // }
     </script>
-    <style>
-        .custom-div-icon .marker-pin {
-            width: 3px;
-            height: 3px;
-            border-radius: 50%;
-            background-color: #4838CC;
-            text-align: center;
-            color: white;
-            padding: 5px;
-            font-size: 14px;
-        }
-        .custom-div-icon .icon {
-            font-weight: bold;
-            font-size: 14px;
-            line-height: 30px;
-        }
-    </style>
 </body>
 </html>
