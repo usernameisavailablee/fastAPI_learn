@@ -58,7 +58,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
             var li = document.createElement('li');
             li.textContent = `Point ${index + 1}: (${coord.latitude.toFixed(5)}, ${coord.longitude.toFixed(5)})`;
             var removeButton = document.createElement('button');
-            removeButton.textContent = 'Remove';
+            removeButton.classList.add('remove'); // добавляем класс 'remove'
+            removeButton.textContent = 'Удалить';
             removeButton.addEventListener('click', function() {
                 coordinates.splice(index, 1);
                 updateCoordinatesDisplay();

@@ -46,3 +46,18 @@ button {
 button:hover {
     background-color: #45a049;
 }
+
+button.remove {
+    background-color: #f44336; /* красный цвет */
+    color: white;
+    padding: 5px 10px;
+    margin-left: 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 3px;
+}
+
+button.remove:hover {
+    background-color: #d32f2f; /* более темный красный при наведении */
+}
